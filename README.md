@@ -50,6 +50,7 @@ python3 scripts/wx2md.py --clean-only 原始.md -o 干净.md                # �
 | `0` | 成功 |
 | `1` | 没设置 `DEEPSEEK_API_KEY` 或接口报错。402 余额不足，429 超速，403/404 换公开链接 |
 | `2` | 空页面或正文太短，没写文件 |
+| `3` | `--clean-only` 的本地文件读不到 |
 
 ## 限制
 

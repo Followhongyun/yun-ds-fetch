@@ -3,7 +3,7 @@
 用法: python3 wx2md.py <公众号链接> [-o 文章.md]
       python3 wx2md.py --clean-only 原始.md [--url 原文链接]   # 只清洗已有文本，不联网
 密钥: 环境变量 DEEPSEEK_API_KEY（不打印、不写文件）
-退出码: 0 成功；2 空页面/占位页，不写文件；1 未设置密钥或接口报错
+退出码: 0 成功；1 未设置密钥或接口报错；2 空页面/占位页，不写文件；3 本地文件读不到
 """
 import argparse, json, os, re, sys, urllib.request, urllib.error
 
@@ -83,8 +83,12 @@ def main():
     ap.add_argument("--url", help="配合 --clean-only，写进来源行的原文链接")
     a = ap.parse_args()
     if a.clean_only:
-        with open(a.src, encoding="utf-8") as f:
-            raw = f.read()
+        try:
+            with open(a.src, encoding="utf-8") as f:
+                raw = f.read()
+        except OSError as e:
+            print(json.dumps({"ok": False, "error": f"读不到文件：{e.strerror}"}, ensure_ascii=False))
+            return 3
         m = re.match(r"#\s*(.+)\n", raw)
         title, content, url = (m.group(1).strip() if m else ""), (raw[m.end():] if m else raw), a.url
     else:
