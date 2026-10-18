@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """公众号文章 -> 干净 Markdown。调用 DeepSeek 官方 Fetch 接口，再做本地清洗。
 用法: python3 wx2md.py <公众号链接> [-o 文章.md]
-      python3 wx2md.py --clean-only 原始.md        # 只清洗已有文本，不联网
+      python3 wx2md.py --clean-only 原始.md [--url 原文链接]   # 只清洗已有文本，不联网
 密钥: 环境变量 DEEPSEEK_API_KEY（不打印、不写文件）
-退出码: 0 成功；2 空页面/占位页，不写文件；1 接口报错
+退出码: 0 成功；2 空页面/占位页，不写文件；1 未设置密钥或接口报错
 """
 import argparse, json, os, re, sys, urllib.request, urllib.error
 
@@ -76,15 +76,17 @@ def problem(title, body):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("src")
-    ap.add_argument("-o", "--out")
-    ap.add_argument("--clean-only", action="store_true")
+    ap = argparse.ArgumentParser(description="公众号文章 -> 干净 Markdown（DeepSeek Fetch + 本地清洗）")
+    ap.add_argument("src", help="公众号文章链接；用 --clean-only 时是本地原始文本文件")
+    ap.add_argument("-o", "--out", help="输出文件；不写则输出到屏幕")
+    ap.add_argument("--clean-only", action="store_true", help="只清洗本地文件，不联网、不收费")
+    ap.add_argument("--url", help="配合 --clean-only，写进来源行的原文链接")
     a = ap.parse_args()
     if a.clean_only:
-        raw = open(a.src, encoding="utf-8").read()
+        with open(a.src, encoding="utf-8") as f:
+            raw = f.read()
         m = re.match(r"#\s*(.+)\n", raw)
-        title, content, url = (m.group(1).strip() if m else ""), (raw[m.end():] if m else raw), a.src
+        title, content, url = (m.group(1).strip() if m else ""), (raw[m.end():] if m else raw), a.url
     else:
         try:
             res = fetch(a.src)
@@ -97,14 +99,14 @@ def main():
     if bad:
         print(json.dumps({"ok": False, "title": title, "problem": bad}, ensure_ascii=False))
         return 2
-    md = f"# {title}\n\n来源：{url}\n\n{body}\n"
+    md = f"# {title}\n\n" + (f"来源：{url}\n\n" if url else "") + f"{body}\n"
     if a.out:
-        open(a.out, "w", encoding="utf-8").write(md)
+        with open(a.out, "w", encoding="utf-8") as f:
+            f.write(md)
     else:
         sys.stdout.write(md)
     print(json.dumps({"ok": True, "title": title, "chars": len(body), "saved_to": a.out}, ensure_ascii=False), file=sys.stderr)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
